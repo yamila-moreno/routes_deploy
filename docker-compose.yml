@@ -1,0 +1,51 @@
+version: "3.3"
+
+services:
+  routes_db:
+    image: postgres:9.6
+    container_name: routes_db
+    environment:
+      - "POSTGRES_DB=routes"
+    networks:
+      - routes_network
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  routes_api:
+    image: routes_api:latest
+    container_name: routes_api
+    networks:
+      - routes_network
+    depends_on:
+      - routes_db
+    volumes:
+      - static-data:/routes_api/static
+    environment:
+      - "POSTGRES_DB=routes"
+      - "POSTGRES_HOST=routes_db"
+      - "POSTGRES_USER=postgres"
+    command: bash -c "/myvenv/bin/python manage.py migrate && /myvenv/bin/python manage.py collectstatic --noinput && /myvenv/bin/gunicorn project.wsgi -b 0.0.0.0:8000"
+
+  routes_front:
+    image: routes_front:latest
+    depends_on:
+      - routes_api
+    container_name: routes_front
+    ports:
+      - "9000:9000"
+    volumes:
+      - static-data:/routes_api_static:ro
+    networks:
+      - routes_network
+
+networks:
+  routes_network:
+    driver: bridge
+
+volumes:
+  db-data:
+    driver: local
+  static-data:
+    driver: local
