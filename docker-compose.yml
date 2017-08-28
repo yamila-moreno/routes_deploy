@@ -14,7 +14,7 @@ services:
       - "5432:5432"
 
   routes_api:
-    image: ryms/routes_api:latest
+    image: ryms/routes_api:9e72794522ffa4a86e188d1e553e8efad2a2affc
     container_name: routes_api
     networks:
       - routes_network
@@ -29,7 +29,7 @@ services:
     command: bash -c "/myvenv/bin/python manage.py migrate && /myvenv/bin/python manage.py collectstatic --noinput && /myvenv/bin/gunicorn project.wsgi -b 0.0.0.0:8000"
 
   routes_front:
-    image: ryms/routes_front:latest
+    image: ryms/routes_front:6e8eb8238368e4e37f17fad0dccfa42d989caa1e
     depends_on:
       - routes_api
     container_name: routes_front
