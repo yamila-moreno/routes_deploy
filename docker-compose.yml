@@ -1,23 +1,17 @@
-version: "3.3"
+version: "3.2"
 
 services:
   routes_db:
     image: postgres:9.6
-    container_name: routes_db
     environment:
       - "POSTGRES_DB=routes"
-    networks:
-      - routes_network
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
   routes_api:
-    image: ryms/routes_api:9e72794522ffa4a86e188d1e553e8efad2a2affc
-    container_name: routes_api
-    networks:
-      - routes_network
+    image: ryms/routes_api:latest
     depends_on:
       - routes_db
     volumes:
@@ -29,20 +23,13 @@ services:
     command: bash -c "/myvenv/bin/python manage.py migrate && /myvenv/bin/python manage.py collectstatic --noinput && /myvenv/bin/gunicorn project.wsgi -b 0.0.0.0:8000"
 
   routes_front:
-    image: ryms/routes_front:6e8eb8238368e4e37f17fad0dccfa42d989caa1e
+    image: ryms/routes_front:latest
     depends_on:
       - routes_api
-    container_name: routes_front
     ports:
       - "9000:9000"
     volumes:
       - static-data:/routes_api_static:ro
-    networks:
-      - routes_network
-
-networks:
-  routes_network:
-    driver: bridge
 
 volumes:
   db-data:
