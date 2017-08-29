@@ -9,6 +9,11 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   routes_api:
     image: ryms/routes_api:latest
@@ -21,6 +26,8 @@ services:
       - "POSTGRES_HOST=routes_db"
       - "POSTGRES_USER=postgres"
     command: bash -c "/myvenv/bin/python manage.py migrate && /myvenv/bin/python manage.py collectstatic --noinput && /myvenv/bin/gunicorn project.wsgi -b 0.0.0.0:8000"
+    deploy:
+      replicas: 3
 
   routes_front:
     image: ryms/routes_front:latest
@@ -30,6 +37,8 @@ services:
       - "9000:9000"
     volumes:
       - static-data:/routes_api_static:ro
+    deploy:
+      replicas: 3
 
 volumes:
   db-data:
