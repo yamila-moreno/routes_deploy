@@ -1,4 +1,4 @@
-version: "3.2"
+version: "3.3"
 
 services:
   routes_db:
@@ -22,12 +22,18 @@ services:
     volumes:
       - static-data:/routes_api/static
     environment:
-      - "POSTGRES_DB=routes"
-      - "POSTGRES_HOST=routes_db"
-      - "POSTGRES_USER=postgres"
-    command: bash -c "/myvenv/bin/python manage.py migrate && /myvenv/bin/python manage.py collectstatic --noinput && /myvenv/bin/gunicorn project.wsgi -b 0.0.0.0:8000"
+      POSTGRES_HOST: routes_db
+      POSTGRES_USER: postgres
+    command: >
+       bash -c
+       'export POSTGRES_DB="$$(< /run/secrets/POSTGRES_DB)"
+       && python manage.py migrate
+       && python manage.py collectstatic --noinput
+       && gunicorn project.wsgi -b 0.0.0.0:8000'
     deploy:
       replicas: 3
+    secrets:
+      - POSTGRES_DB
 
   routes_front:
     image: ryms/routes_front:latest
@@ -45,3 +51,7 @@ volumes:
     driver: local
   static-data:
     driver: local
+
+secrets:
+  POSTGRES_DB:
+    external: true
