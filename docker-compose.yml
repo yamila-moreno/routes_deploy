@@ -7,8 +7,8 @@ services:
       - "POSTGRES_DB=routes"
     volumes:
       - db-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    networks:
+      - traefik-net
     deploy:
       replicas: 1
       placement:
@@ -26,12 +26,19 @@ services:
       POSTGRES_USER: postgres
     command: >
        bash -c
-       'export POSTGRES_DB="$$(< /run/secrets/POSTGRES_DB)"
+       'export POSTGRES_DB=$$(< /run/secrets/POSTGRES_DB)
        && python manage.py migrate
        && python manage.py collectstatic --noinput
        && gunicorn project.wsgi -b 0.0.0.0:8000'
+    networks:
+      - traefik-net
     deploy:
       replicas: 3
+      labels:
+        - "traefik.backend=routes_api"
+        - "traefik.port=8000"
+        - "traefik.frontend.rule=Host:routes.com;PathPrefix:/api,/admin"
+        - "traefik.enable=true"
     secrets:
       - POSTGRES_DB
 
@@ -39,12 +46,40 @@ services:
     image: ryms/routes_front:latest
     depends_on:
       - routes_api
-    ports:
-      - "9000:9000"
     volumes:
       - static-data:/routes_api_static:ro
+    networks:
+      - traefik-net
     deploy:
       replicas: 3
+      labels:
+        - "traefik.backend=routes_front"
+        - "traefik.port=9000"
+        - "traefik.frontend.rule=Host:routes.com"
+        - "traefik.enable=true"
+
+  traefik:
+    image: traefik
+    command: --web --docker --docker.swarmmode --docker.watch --docker.domain=traefik --logLevel=DEBUG
+    ports:
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - traefik-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefk.toml
+    labels:
+      - "traefik.enable=false"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  traefik-net:
+    driver: overlay
+
 
 volumes:
   db-data:
