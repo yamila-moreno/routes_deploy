@@ -60,7 +60,7 @@ services:
 
   traefik:
     image: traefik
-    command: --web --docker --docker.swarmmode --docker.watch --docker.domain=traefik --logLevel=DEBUG
+    command: --web --docker --docker.swarmmode --docker.watch --docker.domain=traefik --logLevel=DEBUG --web.metrics --web.metrics.prometheus
     ports:
       - "80:80"
       - "8080:8080"
@@ -75,6 +75,33 @@ services:
       placement:
         constraints:
           - node.role == manager
+
+  prometheus:
+    image: basi/prometheus-swarm:latest
+    ports:
+      - "9090:9090"
+    command: >
+      -config.file=/etc/prometheus/prometheus.yml
+      -storage.local.path=/prometheus
+      -web.console.libraries=/etc/prometheus/console_libraries
+      -web.console.templates=/etc/prometheus/consoles
+      -alertmanager.url=http://alertmanager:9093
+    networks:
+      - traefik-net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1024M
+        reservations:
+          cpus: '0.50'
+          memory: 128M
+      labels:
+        - "traefik.enable=false"
+
 
 networks:
   traefik-net:
